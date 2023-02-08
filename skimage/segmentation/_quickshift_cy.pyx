@@ -14,9 +14,31 @@ from libc.float cimport DBL_MAX
 cnp.import_array()
 
 
+cdef int _row_val_in_2point_array(int val, int arr_len, np_ints* arr_ptr) nogil :
+    
+    for i in range(arr_len):
+        if val == arr_ptr[0]:
+            return 1
+
+        arr_ptr += 2
+
+    return 0
+
+
+cdef int _2point_in_2point_array(int r, int c, int arr_len, np_ints* arr_ptr) nogil :
+
+    for i in range(arr_len):
+        if r == arr_ptr[0] and c == arr_ptr[1]:
+            return 1
+        
+        arr_ptr += 2
+
+    return 0
+
+
 def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                        np_floats max_dist, bint return_tree, int random_seed,
-                       bool subset, np_ints[:, :] subset_idxs):
+                       bint subset, np_ints[:, :] subset_idxs):
     """
     Produces an oversegmentation of the image using the quickshift mode-seeking
     algorithm.
@@ -70,6 +92,9 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     cdef Py_ssize_t width = image.shape[1]
     cdef Py_ssize_t channels = image.shape[2]
 
+    cdef bint use_subset = subset
+    cdef int arr_len = subset_idxs.shape[0]
+
     cdef np_floats[:, ::1] densities = np.zeros((height, width), dtype=dtype)
 
     cdef np_floats current_density, closest, dist, t
@@ -91,7 +116,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
             # Check if row is in the image subset
-            if subset and r not in subset_idxs:
+            if use_subset and not _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
                 continue
 
@@ -99,7 +124,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
             r_max = min(r + kernel_width + 1, height)
             for c in range(width):
                 # Check if (r, c) is in the image subset
-                if subset and not np.any(np.equal(np.array([[r, c]]), subset_idxs).all(1)):
+                if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
                     current_pixel_ptr += channels
                     continue
 
@@ -108,7 +133,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                 for r_ in range(r_min, r_max):
                     for c_ in range(c_min, c_max):
                         # Check if (r_, c_) is in the image subset
-                        if subset and not np.any(np.equal(np.array([[r_, c_]]), subset_idxs).all(1)):
+                        if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
                             continue
 
                         dist = 0
@@ -127,16 +152,17 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
             # Check if row is in the image subset
-            if subset and r not in subset_idxs:
+            if use_subset and _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
-                parent[r, :] = np.empty((width)).fill(-1)
+                for c in range(height):
+                    parent[r, c] = -1
                 continue
 
             r_min = max(r - kernel_width, 0)
             r_max = min(r + kernel_width + 1, height)
             for c in range(width):
                 # Check if (r, c) is in the image subset
-                if subset and not np.any(np.equal(np.array([[r, c]]), subset_idxs).all(1)):
+                if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
                     current_pixel_ptr += channels
                     parent[r, c] = -1
                     continue
@@ -148,7 +174,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                 for r_ in range(r_min, r_max):
                     for c_ in range(c_min, c_max):
                         # Check if (r_, c_) is in the image subset
-                        if subset and not np.any(np.equal(np.array([[r_, c_]]), subset_idxs).all(1)):
+                        if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
                             continue
 
                         if densities[r_, c_] > current_density:
