@@ -94,6 +94,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
 
     cdef bint use_subset = subset
     cdef int arr_len = subset_idxs.shape[0]
+    cdef np_ints[2] root_parent_exc_cluster = np.array([-1, -1], dtype=np.int32)
 
     cdef np_floats[:, ::1] densities = np.zeros((height, width), dtype=dtype)
 
@@ -111,11 +112,11 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         np.arange(width * height, dtype=np.intp).reshape(height, width)
     cdef np_floats[:, ::1] dist_parent = np.zeros((height, width), dtype=dtype)
 
-    print('here')
     # compute densities
     with nogil:
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
+            print(f'{r}')
             # Check if row is in the image subset
             if use_subset and not _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
@@ -152,6 +153,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         # find nearest node with higher density
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
+            print(f'{r}')
             # Check if row is in the image subset
             if use_subset and _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
@@ -164,8 +166,12 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
             for c in range(width):
                 # Check if (r, c) is in the image subset
                 if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
+                    if root_parent_exc_cluster[0] == -1:
+                        root_parent_exc_cluster[0] = r
+                        root_parent_exc_cluster[1] = c
+                        
                     current_pixel_ptr += channels
-                    parent[r, c] = -1
+                    parent[r, c] = root_parent_exc_cluster[0] * width + root_parent_exc_cluster[1]
                     continue
 
                 current_density = densities[r, c]
