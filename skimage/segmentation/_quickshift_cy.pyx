@@ -11,7 +11,7 @@ from .._shared.fused_numerics cimport np_floats, np_ints
 from libc.math cimport exp, sqrt, ceil
 from libc.float cimport DBL_MAX
 
-from libc.stdio cimport printf
+from libc.stdio cimport printf, fflush, stdout
 
 cnp.import_array()
 
@@ -119,6 +119,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
             printf("%d ", r)
+            fflush(stdout)
             # Check if row is in the image subset
             if use_subset and not _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
@@ -157,6 +158,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
             printf("%d ", r)
+            fflush(stdout)
             # Check if row is in the image subset
             if use_subset and _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
