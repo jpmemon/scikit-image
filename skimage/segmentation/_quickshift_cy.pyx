@@ -112,7 +112,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         np.arange(width * height, dtype=np.intp).reshape(height, width)
     cdef np_floats[:, ::1] dist_parent = np.zeros((height, width), dtype=dtype)
 
-    from libc.stdio import printf
+    from libc.stdio cimport printf
 
     # compute densities
     with nogil:
