@@ -40,7 +40,7 @@ cdef int _2point_in_2point_array(int r, int c, int arr_len, np_ints* arr_ptr) no
 
 def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                        np_floats max_dist, bint return_tree, int random_seed,
-                       bint subset, np_ints[:, :] subset_idxs):
+                       bint subset, np_ints[:, :] subset_mask):
     """
     Produces an oversegmentation of the image using the quickshift mode-seeking
     algorithm.
@@ -95,7 +95,6 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     cdef Py_ssize_t channels = image.shape[2]
 
     cdef bint use_subset = subset
-    cdef int arr_len = subset_idxs.shape[0]
     cdef np_ints[2] root_parent_exc_cluster = np.array([-1, -1], dtype=np.int32)
 
     cdef np_floats[:, ::1] densities = np.zeros((height, width), dtype=dtype)
@@ -117,19 +116,16 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     # compute densities
     with nogil:
         current_pixel_ptr = &image[0, 0, 0]
+        subset_ptr = &subset_mask[0, 0]
         for r in range(height):
             printf("%d ", r)
             fflush(stdout)
-            # Check if row is in the image subset
-            if use_subset and not _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
-                current_pixel_ptr += channels * width
-                continue
 
             r_min = max(r - kernel_width, 0)
             r_max = min(r + kernel_width + 1, height)
             for c in range(width):
                 # Check if (r, c) is in the image subset
-                if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
+                if use_subset and not subset_ptr[r * width + c]:
                     current_pixel_ptr += channels
                     continue
 
@@ -138,7 +134,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                 for r_ in range(r_min, r_max):
                     for c_ in range(c_min, c_max):
                         # Check if (r_, c_) is in the image subset
-                        if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
+                        if use_subset and not subset_ptr[r_ * width + c_]:
                             continue
 
                         dist = 0
@@ -159,18 +155,12 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         for r in range(height):
             printf("%d ", r)
             fflush(stdout)
-            # Check if row is in the image subset
-            if use_subset and _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
-                current_pixel_ptr += channels * width
-                for c in range(height):
-                    parent[r, c] = -1
-                continue
 
             r_min = max(r - kernel_width, 0)
             r_max = min(r + kernel_width + 1, height)
             for c in range(width):
                 # Check if (r, c) is in the image subset
-                if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
+                if use_subset and not subset_ptr[r * width + c]:
                     if root_parent_exc_cluster[0] == -1:
                         root_parent_exc_cluster[0] = r
                         root_parent_exc_cluster[1] = c
@@ -186,7 +176,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                 for r_ in range(r_min, r_max):
                     for c_ in range(c_min, c_max):
                         # Check if (r_, c_) is in the image subset
-                        if use_subset and not _2point_in_2point_array(r, c, arr_len, &subset_idxs[0, 0]):
+                        if use_subset and not subset_ptr[r_ * width + c_]:
                             continue
 
                         if densities[r_, c_] > current_density:
