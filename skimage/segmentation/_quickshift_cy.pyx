@@ -95,6 +95,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     cdef Py_ssize_t channels = image.shape[2]
 
     cdef bint use_subset = subset
+    cdef np_ints* subset_ptr = &subset_mask[0, 0]
     cdef np_ints[2] root_parent_exc_cluster = np.array([-1, -1], dtype=np.int32)
 
     cdef np_floats[:, ::1] densities = np.zeros((height, width), dtype=dtype)
@@ -116,7 +117,6 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     # compute densities
     with nogil:
         current_pixel_ptr = &image[0, 0, 0]
-        subset_ptr = &subset_mask[0, 0]
         for r in range(height):
             printf("%d ", r)
             fflush(stdout)
