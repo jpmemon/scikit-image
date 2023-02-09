@@ -112,11 +112,13 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         np.arange(width * height, dtype=np.intp).reshape(height, width)
     cdef np_floats[:, ::1] dist_parent = np.zeros((height, width), dtype=dtype)
 
-    print('HERE')
+    from libc.stdio import printf
+
     # compute densities
     with nogil:
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
+            printf("%d ", r)
             # Check if row is in the image subset
             if use_subset and not _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
@@ -150,9 +152,11 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                         densities[r, c] += exp(dist * inv_kernel_size_sqr)
                 current_pixel_ptr += channels
 
+        printf("\nDensities Computed\n")
         # find nearest node with higher density
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
+            printf("%d ", r)
             # Check if row is in the image subset
             if use_subset and _row_val_in_2point_array(r, arr_len, &subset_idxs[0, 0]):
                 current_pixel_ptr += channels * width
@@ -205,7 +209,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                 # So if dist_parent[r, c] == 0, we know (r, c) is not in the image subset
                 dist_parent[r, c] = sqrt(closest)
                 current_pixel_ptr += channels
-
+    printf("\nNearest neighbors found\n")
     dist_parent_flat = np.array(dist_parent).ravel()
     parent_flat = np.array(parent).ravel()
 
