@@ -112,6 +112,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
         np.arange(width * height, dtype=np.intp).reshape(height, width)
     cdef np_floats[:, ::1] dist_parent = np.zeros((height, width), dtype=dtype)
 
+    print('HERE')
     # compute densities
     with nogil:
         current_pixel_ptr = &image[0, 0, 0]
@@ -217,6 +218,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     # set parent_flat[k] to parent_flat[parent_flat[k]]
     # so then if this doesn't change, we know we've found the root parent of a cluster
     while (old != parent_flat).any():
+        print('here')
         old = parent_flat
         parent_flat = parent_flat[parent_flat]
 
