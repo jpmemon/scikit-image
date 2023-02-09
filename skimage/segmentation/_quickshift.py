@@ -81,7 +81,6 @@ def quickshift(image, ratio=1.0, kernel_size=5, max_dist=10,
     image = gaussian(image, [sigma, sigma, 0], mode='reflect', channel_axis=-1)
     image = np.ascontiguousarray(image * ratio)
 
-    print('here')
     segment_mask = _quickshift_cython(
         image, kernel_size=kernel_size, max_dist=max_dist,
         return_tree=return_tree, random_seed=random_seed,
