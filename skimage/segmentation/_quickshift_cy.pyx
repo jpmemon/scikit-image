@@ -118,9 +118,6 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     with nogil:
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
-            printf("%d ", r)
-            fflush(stdout)
-
             r_min = max(r - kernel_width, 0)
             r_max = min(r + kernel_width + 1, height)
             for c in range(width):
@@ -149,13 +146,9 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                         densities[r, c] += exp(dist * inv_kernel_size_sqr)
                 current_pixel_ptr += channels
 
-        printf("\nDensities Computed\n")
         # find nearest node with higher density
         current_pixel_ptr = &image[0, 0, 0]
         for r in range(height):
-            printf("%d ", r)
-            fflush(stdout)
-
             r_min = max(r - kernel_width, 0)
             r_max = min(r + kernel_width + 1, height)
             for c in range(width):
@@ -201,7 +194,7 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
                 # So if dist_parent[r, c] == 0, we know (r, c) is not in the image subset
                 dist_parent[r, c] = sqrt(closest)
                 current_pixel_ptr += channels
-    printf("\nNearest neighbors found\n")
+
     dist_parent_flat = np.array(dist_parent).ravel()
     parent_flat = np.array(parent).ravel()
 
@@ -214,7 +207,6 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     # set parent_flat[k] to parent_flat[parent_flat[k]]
     # so then if this doesn't change, we know we've found the root parent of a cluster
     while (old != parent_flat).any():
-        print('here')
         old = parent_flat
         parent_flat = parent_flat[parent_flat]
 
