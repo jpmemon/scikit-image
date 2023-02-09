@@ -11,6 +11,8 @@ from .._shared.fused_numerics cimport np_floats, np_ints
 from libc.math cimport exp, sqrt, ceil
 from libc.float cimport DBL_MAX
 
+from libc.stdio cimport printf
+
 cnp.import_array()
 
 
@@ -111,8 +113,6 @@ def _quickshift_cython(np_floats[:, :, ::1] image, np_floats kernel_size,
     cdef Py_ssize_t[:, ::1] parent = \
         np.arange(width * height, dtype=np.intp).reshape(height, width)
     cdef np_floats[:, ::1] dist_parent = np.zeros((height, width), dtype=dtype)
-
-    from libc.stdio cimport printf
 
     # compute densities
     with nogil:
